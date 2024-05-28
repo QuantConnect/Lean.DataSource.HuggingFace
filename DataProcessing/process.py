@@ -2,15 +2,10 @@ from CLRImports import *
 from huggingface_hub import snapshot_download, hf_hub_url, get_hf_file_metadata
 from os import environ, listdir, path, sep
 from pathlib import Path
-from shutil import  copytree, rmtree
+from shutil import move
 
 SUB_DIR = "models/huggingface/"
 MODELS = environ.get('MODELS').split(',')
-
-def __get_destination(dst):
-    if path.exists(dst):
-        rmtree(dst)
-    return dst
 
 def __get_commit_hash(repo_id):
     commit_hash = ''
@@ -52,18 +47,21 @@ if __name__ == '__main__':
         current_hash = __get_commit_hash(repo_id)
         if not current_hash:
             errors += ' ' + repo_id
-    
-        saved_hash = __get_saved_hash(root / repo_id)
+
+        local_path = repo_id.replace('/', '--')
+        saved_hash = __get_saved_hash(root / Path(f'models--{local_path}'))
         if saved_hash and saved_hash == current_hash:
             print(f'Skip updating \'{repo_id}\' already up to date, hash: {current_hash}')
             continue
-        print(f'Start fetching \'{repo_id}\', hash: {current_hash}...')
+        print(f'Start fetching \'{repo_id}\', current hash: {current_hash}, saved hash {saved_hash}...')
 
         src = snapshot_download(repo_id=repo_id, token=token, ignore_patterns=["*tfevents*"])
-        dst = __get_destination(temp / repo_id)
+        # 'src' is: models--ProsusAI--finbert\snapshots\4556d13015211d73dccd3fdd39d39232506f3e43, we need to copy the whole folder for hugging to recognize it
+        src = path.dirname(path.dirname(src))
 
-        copytree(src, dst)
-        __save_current_hash(dst, current_hash)
+        print(f'Downloaded: {src}')
+        move(src, temp)
+        __save_current_hash(temp / Path(path.basename(src)), current_hash)
 
     if errors:
         exit(errors)
