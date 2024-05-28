@@ -2,7 +2,7 @@ from CLRImports import *
 from huggingface_hub import snapshot_download, hf_hub_url, get_hf_file_metadata
 from os import environ, listdir, path, sep
 from pathlib import Path
-from shutil import  copyfile, rmtree
+from shutil import  copytree, rmtree
 
 SUB_DIR = "models/huggingface/"
 MODELS = environ.get('MODELS').split(',')
@@ -10,17 +10,16 @@ MODELS = environ.get('MODELS').split(',')
 def __get_destination(dst):
     if path.exists(dst):
         rmtree(dst)
-    dst.mkdir(parents=True, exist_ok=True)
     return dst
 
 def __get_commit_hash(repo_id):
     commit_hash = ''
-    for filename in ["pytorch_model.bin", "tf_model.h5"]:
+    for filename in ["pytorch_model.bin", "tf_model.h5", "model.safetensors"]:
         url = hf_hub_url(repo_id=repo_id, filename=filename)
         try:
             metadata = get_hf_file_metadata(url=url)
             # we merge the bin & h5 hashes
-            commit_hash = commit_hash + metadata.commit_hash
+            commit_hash = commit_hash + f'{filename}:{metadata.commit_hash}.'
         except:
             # might not exist
             continue
@@ -62,9 +61,8 @@ if __name__ == '__main__':
 
         src = snapshot_download(repo_id=repo_id, token=token, ignore_patterns=["*tfevents*"])
         dst = __get_destination(temp / repo_id)
-        
-        for file in listdir(src):
-            copyfile(path.join(src, file), path.join(dst, file))
+
+        copytree(src, dst)
         __save_current_hash(dst, current_hash)
 
     if errors:
