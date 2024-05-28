@@ -8,5 +8,5 @@ from pythonnet import set_runtime
 set_runtime(get_coreclr('process.runtimeconfig.json'))
 
 from AlgorithmImports import *
-from QuantConnect.Lean.Engine.DataFeeds import *
+from clr import AddReference
 AddReference("Fasterflect")

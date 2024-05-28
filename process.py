@@ -5,24 +5,7 @@ from pathlib import Path
 from shutil import  copyfile, rmtree
 
 SUB_DIR = "models/huggingface/"
-MODELS = [
-    "mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis",
-    "yiyanghkust/finbert-tone",
-    "ProsusAI/finbert",
-    "ahmedrachid/FinancialBERT-Sentiment-Analysis",
-    "bardsai/finance-sentiment-fr-base",
-    "nickmuchi/distilroberta-finetuned-financial-text-classification",
-    "StephanAkkerman/FinTwitBERT-sentiment",
-    "nickmuchi/sec-bert-finetuned-finance-classification",
-    "nickmuchi/deberta-v3-base-finetuned-finance-text-classification",
-    "google-bert/bert-base-uncased",
-    "google/gemma-7b",
-    "openai-community/gpt2",
-    "cardiffnlp/twitter-roberta-base-sentiment-latest",
-    "distilbert/distilbert-base-uncased",
-    "FacebookAI/roberta-base",
-    "microsoft/deberta-base"
-]
+MODELS = environ.get('MODELS').split(',')
 
 def __get_destination(dst):
     if path.exists(dst):
@@ -31,14 +14,17 @@ def __get_destination(dst):
     return dst
 
 def __get_commit_hash(repo_id):
+    commit_hash = ''
     for filename in ["pytorch_model.bin", "tf_model.h5"]:
         url = hf_hub_url(repo_id=repo_id, filename=filename)
         try:
             metadata = get_hf_file_metadata(url=url)
-            return metadata.commit_hash
+            # we merge the bin & h5 hashes
+            commit_hash = commit_hash + metadata.commit_hash
         except:
+            # might not exist
             continue
-    return ''
+    return commit_hash
 
 def __get_saved_hash(dir):
     file = dir / "commit_hash"
@@ -47,10 +33,10 @@ def __get_saved_hash(dir):
     with open(file) as f:
         return f.read()
     
-def __save_current_hash(dir, src):
+def __save_current_hash(dir, current_hash):
     file = dir / "commit_hash"
     with open(file, mode='w') as f:
-        f.write(src.split(sep)[-1])
+        f.write(current_hash)
 
 if __name__ == '__main__':
     token = environ.get("HF_ACCESS_TOKEN", None)
@@ -70,14 +56,16 @@ if __name__ == '__main__':
     
         saved_hash = __get_saved_hash(root / repo_id)
         if saved_hash and saved_hash == current_hash:
+            print(f'Skip updating \'{repo_id}\' already up to date, hash: {current_hash}')
             continue
+        print(f'Start fetching \'{repo_id}\', hash: {current_hash}...')
 
         src = snapshot_download(repo_id=repo_id, token=token, ignore_patterns=["*tfevents*"])
         dst = __get_destination(temp / repo_id)
         
         for file in listdir(src):
             copyfile(path.join(src, file), path.join(dst, file))
-        __save_current_hash(dst, src)
+        __save_current_hash(dst, current_hash)
 
     if errors:
         exit(errors)
