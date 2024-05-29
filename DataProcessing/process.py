@@ -7,8 +7,8 @@ from shutil import move
 SUB_DIR = "models/huggingface/"
 MODELS = environ.get('MODELS').split(',')
 
-def __get_commit_hash(repo_id):
-    file_path = snapshot_download(repo_id=repo_id, allow_patterns="config.json")
+def __get_commit_hash(repo_id, token):
+    file_path = snapshot_download(repo_id=repo_id, token=token, allow_patterns="config.json")
     return path.basename(file_path)
 
 def __get_saved_hash(dir):
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     errors = ''
 
     for repo_id in MODELS:
-        current_hash = __get_commit_hash(repo_id)
+        current_hash = __get_commit_hash(repo_id, token)
         if not current_hash:
             errors += ' ' + repo_id
 
