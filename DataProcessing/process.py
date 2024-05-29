@@ -8,17 +8,8 @@ SUB_DIR = "models/huggingface/"
 MODELS = environ.get('MODELS').split(',')
 
 def __get_commit_hash(repo_id):
-    commit_hash = ''
-    for filename in ["pytorch_model.bin", "tf_model.h5", "model.safetensors"]:
-        url = hf_hub_url(repo_id=repo_id, filename=filename)
-        try:
-            metadata = get_hf_file_metadata(url=url)
-            # we merge the bin & h5 hashes
-            commit_hash = commit_hash + f'{filename}:{metadata.commit_hash}.'
-        except:
-            # might not exist
-            continue
-    return commit_hash
+    file_path = snapshot_download(repo_id=repo_id, allow_patterns="config.json")
+    return path.basename(file_path)
 
 def __get_saved_hash(dir):
     file = dir / "commit_hash"
