@@ -5,7 +5,7 @@ from pythonnet import set_runtime
 
 # process.runtimeconfig.json is created when we build the DataProcessing Project:
 # dotnet build .\DataProcessing\DataProcessing.csproj
-set_runtime(get_coreclr('process.runtimeconfig.json'))
+set_runtime(get_coreclr(runtime_config='process.runtimeconfig.json'))
 
 from AlgorithmImports import *
 from clr import AddReference
